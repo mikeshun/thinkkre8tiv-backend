@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { SearchInventoryDto } from './dto/search-inventory.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Inventory } from './schemas/inventory.schemas';
@@ -95,6 +96,38 @@ export class InventoryService {
 
     } catch (error) {
       throw new ConflictException('Something went wrong')
+    }
+  }
+
+  async searchInventory(searchDto: SearchInventoryDto) {
+    try {
+      const query: any = {};
+
+      const searchTerm = searchDto.q || searchDto.name;
+      if (searchTerm) {
+        query.name = { $regex: searchTerm, $options: 'i' };
+      }
+
+      if (searchDto.minQuantity !== undefined || searchDto.maxQuantity !== undefined) {
+        query.quantity = {};
+        if (searchDto.minQuantity !== undefined) {
+          query.quantity.$gte = searchDto.minQuantity;
+        }
+        if (searchDto.maxQuantity !== undefined) {
+          query.quantity.$lte = searchDto.maxQuantity;
+        }
+      }
+
+      const inventory = await this.inventoryModel.find(query).exec();
+
+      return {
+        success: true,
+        message: `Found ${inventory.length} items matching criteria`,
+        inventory,
+      };
+    } catch (error) {
+      this.logger.error(`Error searching inventory: ${error.message}`);
+      throw new ConflictException('Error performing inventory search');
     }
   }
 }

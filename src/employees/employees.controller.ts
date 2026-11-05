@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -18,15 +19,16 @@ import {
   CreateEmployeeDto,
   LoginEmployeeDto,
 } from './dto/create-employee.dto';
+import { SearchEmployeeDto } from './dto/search-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesService } from './employees.service';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Public } from 'src/enum/public.decorator';
 
 @ApiBearerAuth('access-token')
 @Controller('api')
 export class EmployeesController {
-  constructor(private readonly employeesService: EmployeesService) {}
+  constructor(private readonly employeesService: EmployeesService) { }
 
   @Post('employee/register')
   registerEmployee(@Body() createEmployeeDto: CreateEmployeeDto) {
@@ -50,6 +52,18 @@ export class EmployeesController {
   @Post('employee/change-password')
   changePassword(@Body() dto: ChangePasswordDto) {
     return this.employeesService.changePassword(dto);
+  }
+
+  @Get('employee/search')
+  @ApiQuery({ name: 'q', required: false, description: 'General search term (firstname, lastname, or email)' })
+  @ApiQuery({ name: 'name', required: false })
+  @ApiQuery({ name: 'email', required: false })
+  @ApiQuery({ name: 'role', required: false, enum: Role })
+  @ApiQuery({ name: 'phone', required: false })
+  @Roles(Role.ADMIN)
+  @UseGuards(AuthGuard, RolesGuard)
+  search(@Query() query: SearchEmployeeDto) {
+    return this.employeesService.searchEmployees(query);
   }
 
   @Get('employee/:id')

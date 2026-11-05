@@ -10,9 +10,27 @@ export class MaterialRequest {
   @Prop({ type: Types.ObjectId, ref: 'Inventory', required: true })
   inventoryItem: Types.ObjectId;
 
-
   @Prop({ type: Types.ObjectId, ref: 'Invoice' })
   invoice: Types.ObjectId;
+
+  @Prop({
+    type: {
+      _id: false,
+      userId: { type: Types.ObjectId, required: false },
+      firstName: { type: String, required: false },
+      lastName: { type: String, required: false },
+      email: { type: String, required: false },
+      role: { type: String, required: false },
+    },
+    required: false,
+  })
+  requestedBy: {
+    userId: Types.ObjectId;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+  };
 
 
   @Prop({ required: true })  
@@ -37,6 +55,10 @@ export class MaterialRequest {
     default: MaterialStatus.PENDING
   })
   status: MaterialStatus;
+
+  // True while this request's quantity is held out of inventory (set on approval)
+  @Prop({ type: Boolean, default: false })
+  inventoryDeducted: boolean;
 
   @Prop({type:Date})
   createdAt?: Date;

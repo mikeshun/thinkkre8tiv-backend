@@ -1,34 +1,34 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types,} from "mongoose";
-import { Admin } from "src/admin/schemas/admin.schemas";
-import { Employee } from "src/employees/schemas/employee.schemas";
-import { Status } from "src/enum/invoice.enum";
-import { Inventory } from "src/inventory/schemas/inventory.schemas";
+import { HydratedDocument, Types, } from "mongoose";
+import { Admin } from "../../admin/schemas/admin.schemas";
+import { Employee } from "../../employees/schemas/employee.schemas";
+import { JobStatus, Status } from "../../enum/invoice.enum";
+import { Inventory } from "../../inventory/schemas/inventory.schemas";
 
 export type InvoiceItemDocument = HydratedDocument<InvoiceItem>;
 export type InvoiceDocument = HydratedDocument<Invoice>;
 
-@Schema({timestamps:true})
+@Schema({ timestamps: true })
 export class InvoiceItem {
 
-  @Prop({type: Types.ObjectId, ref:'Inventory', required:true})
-  inventoryItem:Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Inventory', required: true })
+  inventoryItem: Types.ObjectId;
 
   // @Prop({ type: Types.ObjectId, ref: 'MaterialRequest', required: true }) 
   // materialRequest: Types.ObjectId;
 
-  @Prop({required:true})
+  @Prop({ required: true })
   name: string
 
-  @Prop({required :true})
-  costPerItem:number
+  @Prop({ required: true })
+  costPerItem: number
 
 
-  @Prop({required:true})
-  quantity:number;
+  @Prop({ required: true })
+  quantity: number;
 
-  @Prop({required:true})
-  cost:number
+  @Prop({ required: true })
+  cost: number
 }
 
 
@@ -38,10 +38,10 @@ interface InventoryDocument extends Inventory, Document {
   name: string;
   cost: number;
 }
-InvoiceItemSchema.pre('save',async function(next){
-  if(this.isNew){
+InvoiceItemSchema.pre('save', async function (next) {
+  if (this.isNew) {
     const inventory = await this.model('Inventory').findById(this.inventoryItem) as InventoryDocument
-    if(inventory){
+    if (inventory) {
       this.name = inventory.name;
       this.costPerItem = inventory.cost
     }
@@ -53,33 +53,34 @@ InvoiceItemSchema.pre('save',async function(next){
 })
 
 
-interface StoredInvoiceItem{
-  inventoryid: Types.ObjectId;
-  name: string
-  costPerItem:number;
-  quantity:number;
-  cost:number;
+interface StoredInvoiceItem {
+  inventoryItem: Types.ObjectId;
+  name: string;
+  purchaseCost: number;
+  costPerItem: number;
+  quantity: number;
+  cost: number;
 }
 
-interface StoredAdmin extends Admin,Document{
-  type: 'admin';
-  adminId:Types.ObjectId;
-  firstName:string;
-  lastName:string
+interface StoredAdmin extends Admin, Document {
+  userType: 'admin';
+  adminId?: Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
 }
 
-interface StoredEmployee extends Employee, Document{
-  type: 'employee'
-  employeeId:Types.ObjectId;
-  firstName: string;
-  lastName:string;
+interface StoredEmployee extends Employee, Document {
+  userType: 'employee';
+  employeeId?: Types.ObjectId;
+  firstName?: string;
+  lastName?: string;
 }
 
 
 type UserAccount = StoredAdmin | StoredEmployee;
 
 
-@Schema({timestamps:true})
+@Schema({ timestamps: true })
 export class Invoice {
   @Prop({
     required: true,
@@ -87,55 +88,82 @@ export class Invoice {
     default: () => `HRM${Math.floor(10000000 + Math.random() * 90000000)}`,
   })
   invoiceId: string;
-  @Prop({ type: [{
-    _id: false,
-    inventoryItem: { type: Types.ObjectId, required: true, ref: 'Inventory' },
-    name: { type: String },
-    costPerItem: { type: Number },
-    quantity: { type: Number},
-    cost: { type: Number}
-  }] })
+  @Prop({
+    type: [{
+      _id: false,
+      inventoryItem: { type: Types.ObjectId, required: true, ref: 'Inventory' },
+      name: { type: String },
+      purchaseCost: { type: Number },
+      costPerItem: { type: Number },
+      quantity: { type: Number },
+      cost: { type: Number }
+    }]
+  })
   items: StoredInvoiceItem[];
 
 
-@Prop()
-title:string
+  @Prop()
+  title: string
 
-@Prop()
-clientName:string
+  @Prop()
+  clientName: string
 
-@Prop()
-clientEmail:string
+  @Prop()
+  clientEmail: string
 
-@Prop()
-clientAddress:string
+  @Prop()
+  clientAddress: string
 
-@Prop()
-totalCost:number
+  @Prop()
+  clientPhone: string
 
-@Prop()
-totalQuantity:number
+  @Prop()
+  totalCost: number
 
-@Prop({
-enum: Status,
-type:String,
-default:Status.PENDING
-})
-status:Status
+  @Prop()
+  totalQuantity: number
+
+  @Prop({
+    enum: Status,
+    type: String,
+    default: Status.PENDING
+  })
+  status: Status
+
+  @Prop({
+    enum: JobStatus,
+    type: String,
+    default: JobStatus.NOT_STARTED,
+  })
+  jobStatus: JobStatus
 
 
-@Prop({
-  type: {
-    _id: false,
-    userType: { type: String, enum: ['admin', 'employee'], required:true },
-    adminId: { type: Types.ObjectId, ref: 'Admin' },
-    employeeId: { type: Types.ObjectId, ref: 'Employee' },
-    firstName: { type: String },
-    lastName: { type: String}
-  },
-  required: true
-})
-userAccount: UserAccount;
+  @Prop({
+    type: {
+      _id: false,
+      userType: { type: String, enum: ['admin', 'employee'], required: false, default: 'employee' },
+      adminId: { type: Types.ObjectId, ref: 'Admin', required: false },
+      employeeId: { type: Types.ObjectId, ref: 'Employee', required: false },
+      firstName: { type: String, required: false },
+      lastName: { type: String, required: false }
+    },
+    required: false
+  })
+  userAccount: UserAccount;
+
+  @Prop({ type: Types.ObjectId, ref: 'MaterialRequest' })
+  materialRequest: Types.ObjectId;
+
+  @Prop({
+    type: [{
+      _id: false,
+      amount: { type: Number, required: true },
+      date: { type: Date, default: Date.now },
+      note: { type: String, default: '' },
+    }],
+    default: [],
+  })
+  payments: { amount: number; date: Date; note: string }[];
 }
 
 
@@ -149,26 +177,26 @@ function generateUniqueInvoiceId(): string {
   return `HRM${randomDigits}`;
 }
 
-InvoiceSchema.pre('save', async function(next) {
+InvoiceSchema.pre('save', async function (next) {
   if (this.isNew) {
 
 
 
-    
-    
-   
+
+
+
     // Calculate totals
     // this.totalQuantity = this.items.reduce((sum, item) => sum + item.quantity, 0);
     // this.totalCost = this.items.reduce((sum, item) => sum + item.cost, 0);
 
     // Populate user account details
-    if (this.userAccount.type === 'admin' && this.userAccount.adminId) {
+    if (this.userAccount.userType === 'admin' && this.userAccount.adminId && !this.userAccount.firstName) {
       const admin = await this.model('Admin').findById(this.userAccount.adminId) as StoredAdmin
       if (admin) {
         this.userAccount.firstName = admin.firstname;
         this.userAccount.lastName = admin.lastname;
       }
-    } else if (this.userAccount.type === 'employee' && this.userAccount.employeeId) {
+    } else if (this.userAccount.userType === 'employee' && this.userAccount.employeeId && !this.userAccount.firstName) {
       const employee = await this.model('Employee').findById(this.userAccount.employeeId) as StoredEmployee
       if (employee) {
         this.userAccount.firstName = employee.firstname;

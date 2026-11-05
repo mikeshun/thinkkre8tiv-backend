@@ -17,6 +17,9 @@ export class Employee {
   @Prop()
   password: string;
 
+  @Prop({ required: false })
+  phone: string;
+
   @Prop(
     {
       enum: Role,

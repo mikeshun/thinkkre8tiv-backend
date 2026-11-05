@@ -27,6 +27,10 @@ export class CreateEmployeeDto {
   @IsString()
   @ApiProperty({ required: false, default: Role.EMPLOYEE })
   role: string;
+
+  @IsString()
+  @ApiProperty({ required: false })
+  phone?: string;
 }
 
 export class LoginEmployeeDto {
